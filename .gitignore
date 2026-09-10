@@ -1,0 +1,37 @@
+# ---- Flutter / Dart ----
+skillbridge_app/.dart_tool/
+skillbridge_app/.packages
+skillbridge_app/.flutter-plugins
+skillbridge_app/.flutter-plugins-dependencies
+skillbridge_app/build/
+skillbridge_app/pubspec.lock
+**/.pub-cache/
+**/*.g.dart
+**/*.freezed.dart
+
+# Firebase config (never commit real keys)
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart
+**/serviceAccountKey.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# ---- Environment ----
+.env
+.env.local
+!.env.example
+
+# ---- Editors / OS ----
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
