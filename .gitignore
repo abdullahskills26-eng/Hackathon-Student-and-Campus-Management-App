@@ -4,7 +4,8 @@ skillbridge_app/.packages
 skillbridge_app/.flutter-plugins
 skillbridge_app/.flutter-plugins-dependencies
 skillbridge_app/build/
-skillbridge_app/pubspec.lock
+# pubspec.lock IS committed for applications (only libraries omit it),
+# so the whole team resolves the same package versions.
 **/.pub-cache/
 **/*.g.dart
 **/*.freezed.dart
