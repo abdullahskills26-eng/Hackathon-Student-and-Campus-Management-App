@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/state_renderers.dart';
-import '../../../models/dashboard_summary_model.dart';
 import '../../../models/notice_model.dart';
 import '../../../services/api_service.dart';
-import 'widgets/metric_card.dart';
+import 'metric_card.dart';
 
 /// Screen 10 — instructor home: KPI tiles plus the class notice board.
 class OverviewScreen extends StatefulWidget {

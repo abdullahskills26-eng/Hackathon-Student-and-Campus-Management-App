@@ -2,11 +2,45 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../core/constants/api_config.dart';
 import '../models/assignment_model.dart';
-import '../models/dashboard_summary_model.dart';
 import '../models/notice_model.dart';
 import '../models/user_model.dart';
+
+/// Base URL of the FastAPI backend (see skillbridge_backend/). No trailing slash.
+///
+/// Routers mount under the `/api/v1` prefix, so this constant carries the
+/// prefix and every call site passes only the endpoint path.
+///
+/// Swap for a hosted backend when not running locally, e.g.
+///   'https://glorious-train-69xqjqjw6q4vc54pq-8000.app.github.dev/api/v1'
+const String kApiBaseUrl = 'http://127.0.0.1:8000/api/v1';
+
+/// Aggregate counters for the dashboard home.
+///
+/// A response shape rather than a Firestore document, so it lives with the
+/// client instead of in models/.
+class DashboardSummary {
+  final int totalClasses;
+  final int totalStudents;
+  final int activeNotices;
+  final int pendingAssignments;
+
+  DashboardSummary({
+    required this.totalClasses,
+    required this.totalStudents,
+    required this.activeNotices,
+    required this.pendingAssignments,
+  });
+
+  factory DashboardSummary.fromJson(Map<String, dynamic> json) {
+    return DashboardSummary(
+      totalClasses: json['total_classes'] ?? 0,
+      totalStudents: json['total_students'] ?? 0,
+      activeNotices: json['active_notices'] ?? 0,
+      pendingAssignments: json['pending_assignments'] ?? 0,
+    );
+  }
+}
 
 /// Error surfaced to the UI when a request fails or the backend is unreachable.
 class ApiException implements Exception {

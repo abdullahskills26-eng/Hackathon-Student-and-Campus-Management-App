@@ -4,7 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/state_renderers.dart';
 import '../../../models/assignment_model.dart';
 import '../../../services/api_service.dart';
-import 'widgets/info_chip.dart';
+import 'info_chip.dart';
 
 /// Screen 11 — create assignments/quizzes and review submission counts.
 class AssignmentsScreen extends StatefulWidget {
