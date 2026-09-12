@@ -10,11 +10,15 @@ skillbridge_app/build/
 **/*.g.dart
 **/*.freezed.dart
 
-# Firebase config (never commit real keys)
-**/google-services.json
-**/GoogleService-Info.plist
-**/firebase_options.dart
+# Firebase secrets (never commit these)
 **/serviceAccountKey.json
+**/*-firebase-adminsdk-*.json
+
+# NOTE: firebase_options.dart, google-services.json and GoogleService-Info.plist
+# are NOT secrets and are committed. Client Firebase config (including the web
+# apiKey) ships inside every built app bundle and is public by design; access is
+# controlled by Firestore/Storage security rules, not by hiding these values.
+# The Admin SDK service-account key above IS a real secret - keep it out.
 
 # ---- Python ----
 __pycache__/
