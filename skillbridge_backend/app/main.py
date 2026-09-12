@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import (
     assignments,
     attendance,
+    auth,
     batch,
     coordinator,
     dashboard,
     instructor,
     notices,
+    reports,
     seed,
     student,
     students,
@@ -49,6 +51,8 @@ for router in (
     instructor.router,
     coordinator.router,
     seed.router,
+    auth.router,
+    reports.router,
 ):
     app.include_router(router, prefix=API_V1_PREFIX)
 

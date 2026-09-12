@@ -119,6 +119,39 @@ class BatchCreateRequest(BaseModel):
         return code
 
 
+class VerifyTokenRequest(BaseModel):
+    """A Firebase ID token produced by the client after sign-in."""
+
+    idToken: str = Field(..., min_length=10, max_length=8192)
+
+
+class RegisterUserRequest(BaseModel):
+    """A new account plus its Firestore profile."""
+
+    email: str = Field(..., min_length=5, max_length=254)
+    password: str = Field(..., min_length=6, max_length=128)
+    name: str = Field(..., min_length=2, max_length=100)
+    phone: str = Field(default="", max_length=20)
+    role: Literal["student", "instructor", "coordinator"] = "student"
+    city: str = Field(default="", max_length=60)
+    campus: str = Field(default="", max_length=120)
+
+    @field_validator("email")
+    @classmethod
+    def email_looks_valid(cls, v: str) -> str:
+        value = v.strip().lower()
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise ValueError("Enter a valid email address")
+        return value
+
+
+class SetRoleRequest(BaseModel):
+    """Change a user's role claim."""
+
+    uid: str = Field(..., min_length=1, max_length=128)
+    role: Literal["student", "instructor", "coordinator"]
+
+
 class ApplicationStatusUpdateRequest(BaseModel):
     """Move an application to a new lifecycle state."""
 
