@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/instructor/dashboard/instructor_shell.dart';
+import 'features/auth/screens/role_selection_screen.dart';
 
 /// Root widget.
 ///
-/// Currently opens straight onto the instructor shell. Once Firebase Auth
-/// lands, `home` becomes the login screen and role detection routes to the
-/// student / instructor / coordinator shell.
+/// `home` is currently the temporary role picker. Swap it for the real
+/// `LoginScreen` (Firebase Auth + demo-role buttons) once that screen lands,
+/// and route by the `role` field on users/{uid} from there.
 class SkillBridgeApp extends StatelessWidget {
-  const SkillBridgeApp({super.key});
+  final bool firebaseReady;
+  final String? firebaseError;
+
+  const SkillBridgeApp({
+    super.key,
+    this.firebaseReady = false,
+    this.firebaseError,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +24,10 @@ class SkillBridgeApp extends StatelessWidget {
       title: 'SkillBridge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const InstructorShell(),
+      home: RoleSelectionScreen(
+        firebaseReady: firebaseReady,
+        firebaseError: firebaseError,
+      ),
     );
   }
 }
