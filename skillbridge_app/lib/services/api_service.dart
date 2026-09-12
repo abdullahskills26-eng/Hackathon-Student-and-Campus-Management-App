@@ -3,8 +3,27 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/assignment_model.dart';
-import '../models/notice_model.dart';
 import '../models/user_model.dart';
+
+/// A notice as the FastAPI mock backend returns it.
+///
+/// Deliberately separate from [NoticeModel], which is the Firestore document
+/// the app itself uses — this one only mirrors the REST response shape.
+class ApiNotice {
+  final int id;
+  final String text;
+  final String createdAt;
+
+  ApiNotice({required this.id, required this.text, required this.createdAt});
+
+  factory ApiNotice.fromJson(Map<String, dynamic> json) {
+    return ApiNotice(
+      id: json['id'],
+      text: json['text'] ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
+}
 
 /// Base URL of the FastAPI backend (see skillbridge_backend/). No trailing slash.
 ///
@@ -141,7 +160,7 @@ class ApiService {
   }
 
   /// POST /notices/create
-  Future<Notice> createNotice(String text) async {
+  Future<ApiNotice> createNotice(String text) async {
     try {
       final res = await http.post(
         _u('/notices/create'),
@@ -150,7 +169,7 @@ class ApiService {
       );
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
-        return Notice.fromJson(body['notice']);
+        return ApiNotice.fromJson(body['notice']);
       }
       throw ApiException('Failed to post notice (${res.statusCode})');
     } catch (e) {

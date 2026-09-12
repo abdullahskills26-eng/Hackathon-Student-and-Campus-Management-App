@@ -1,7 +1,7 @@
 """Pydantic request schemas — strict validation on all incoming payloads."""
 
 from datetime import date
-from typing import Literal
+from typing import Dict, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -61,3 +61,32 @@ class SubmissionCreateRequest(BaseModel):
         if not self.textAnswer.strip() and not self.fileUrl.strip():
             raise ValueError("Provide a text answer or a file URL")
         return self
+
+
+# ------------------------------------------------------------ Instructor
+
+
+class BulkAttendanceRequest(BaseModel):
+    """One day's attendance for a whole batch."""
+
+    batchId: str = Field(..., min_length=1, max_length=128)
+    date: date
+    statusMap: Dict[str, Literal["Present", "Absent", "Late"]] = Field(
+        ..., min_length=1
+    )
+
+    @field_validator("statusMap")
+    @classmethod
+    def uids_must_be_sane(cls, v: Dict[str, str]) -> Dict[str, str]:
+        for uid in v:
+            if not uid or len(uid) > 128:
+                raise ValueError(f"Invalid student uid: {uid!r}")
+        return v
+
+
+class GradeSubmissionRequest(BaseModel):
+    """Marks and feedback for one submission."""
+
+    submissionId: str = Field(..., min_length=1, max_length=256)
+    marks: int = Field(..., ge=0, le=1000)
+    feedback: str = Field(default="", max_length=2000)

@@ -1,13 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// The two kinds of work an instructor can set.
+class AssignmentType {
+  AssignmentType._();
+
+  static const String assignment = 'Assignment';
+  static const String quiz = 'Quiz';
+
+  static const List<String> all = [assignment, quiz];
+}
+
 /// An assignment or quiz. Firestore collection: `assignments`.
 class AssignmentModel {
   final String assignmentId;
   final String batchId;
   final String title;
+  final String type; // 'Assignment' | 'Quiz'
   final String instructions;
   final int maxMarks;
   final DateTime? dueDate;
+  final DateTime? createdAt;
 
   const AssignmentModel({
     required this.assignmentId,
@@ -15,7 +27,9 @@ class AssignmentModel {
     required this.title,
     required this.instructions,
     required this.maxMarks,
+    this.type = AssignmentType.assignment,
     this.dueDate,
+    this.createdAt,
   });
 
   factory AssignmentModel.fromMap(Map<String, dynamic> map, String id) {
@@ -23,10 +37,12 @@ class AssignmentModel {
       assignmentId: id,
       batchId: (map['batchId'] ?? '').toString(),
       title: (map['title'] ?? 'Untitled assignment').toString(),
+      type: (map['type'] ?? AssignmentType.assignment).toString(),
       instructions: (map['instructions'] ?? '').toString(),
       maxMarks:
           int.tryParse('${map['maxMarks'] ?? map['maximumMarks'] ?? 0}') ?? 0,
       dueDate: _parseDate(map['dueDate']),
+      createdAt: _parseDate(map['createdAt']),
     );
   }
 
@@ -43,11 +59,15 @@ class AssignmentModel {
   Map<String, dynamic> toMap() => {
         'batchId': batchId,
         'title': title,
+        'type': type,
         'instructions': instructions,
         'maxMarks': maxMarks,
         'maximumMarks': maxMarks,
         'dueDate': dueDate == null ? null : Timestamp.fromDate(dueDate!),
+        'createdAt': FieldValue.serverTimestamp(),
       };
+
+  bool get isQuiz => type == AssignmentType.quiz;
 
   bool get isOverdue =>
       dueDate != null && DateTime.now().isAfter(dueDate!);
