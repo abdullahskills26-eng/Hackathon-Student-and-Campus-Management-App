@@ -9,7 +9,15 @@ Interactive docs: http://127.0.0.1:8000/docs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import assignments, attendance, batch, dashboard, notices, students
+from app.api.v1 import (
+    assignments,
+    attendance,
+    batch,
+    dashboard,
+    notices,
+    student,
+    students,
+)
 from app.core.config import API_V1_PREFIX, CORS_ORIGINS, PROJECT_NAME, VERSION
 
 app = FastAPI(
@@ -34,6 +42,7 @@ for router in (
     assignments.router,
     notices.router,
     batch.router,
+    student.router,
 ):
     app.include_router(router, prefix=API_V1_PREFIX)
 

@@ -1,70 +1,67 @@
-import 'submission_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// An assignment as the student sees it.
-///
-/// Reconstructed from usage in the student assignment screens — the class was
-/// not supplied. Distinct from [Assignment] below, which is the instructor's
-/// REST-backed shape.
-class StudentAssignment {
-  final String id;
+/// An assignment or quiz. Firestore collection: `assignments`.
+class AssignmentModel {
+  final String assignmentId;
+  final String batchId;
   final String title;
-  final String course;
-  final String dueDate;
-  final String status; // 'Pending' | 'Submitted' | 'Graded'
-  final int maxMarks;
-  final String description;
   final String instructions;
-  final String? grade;
-  final String? feedback;
-  final AssignmentSubmission? submission;
+  final int maxMarks;
+  final DateTime? dueDate;
 
-  const StudentAssignment({
-    required this.id,
+  const AssignmentModel({
+    required this.assignmentId,
+    required this.batchId,
     required this.title,
-    required this.course,
-    required this.dueDate,
-    required this.status,
-    required this.maxMarks,
-    required this.description,
     required this.instructions,
-    this.grade,
-    this.feedback,
-    this.submission,
+    required this.maxMarks,
+    this.dueDate,
   });
 
-  bool get isPending => status == 'Pending';
-  bool get isSubmitted => status == 'Submitted';
-  bool get isGraded => status == 'Graded';
-  bool get isCompleted => isSubmitted || isGraded;
+  factory AssignmentModel.fromMap(Map<String, dynamic> map, String id) {
+    return AssignmentModel(
+      assignmentId: id,
+      batchId: (map['batchId'] ?? '').toString(),
+      title: (map['title'] ?? 'Untitled assignment').toString(),
+      instructions: (map['instructions'] ?? '').toString(),
+      maxMarks:
+          int.tryParse('${map['maxMarks'] ?? map['maximumMarks'] ?? 0}') ?? 0,
+      dueDate: _parseDate(map['dueDate']),
+    );
+  }
 
-  StudentAssignment copyWith({
-    String? title,
-    String? course,
-    String? dueDate,
-    String? status,
-    int? maxMarks,
-    String? description,
-    String? instructions,
-    String? grade,
-    String? feedback,
-    AssignmentSubmission? submission,
-  }) =>
-      StudentAssignment(
-        id: id,
-        title: title ?? this.title,
-        course: course ?? this.course,
-        dueDate: dueDate ?? this.dueDate,
-        status: status ?? this.status,
-        maxMarks: maxMarks ?? this.maxMarks,
-        description: description ?? this.description,
-        instructions: instructions ?? this.instructions,
-        grade: grade ?? this.grade,
-        feedback: feedback ?? this.feedback,
-        submission: submission ?? this.submission,
-      );
+  factory AssignmentModel.fromDoc(
+          DocumentSnapshot<Map<String, dynamic>> doc) =>
+      AssignmentModel.fromMap(doc.data() ?? {}, doc.id);
+
+  static DateTime? _parseDate(Object? raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return DateTime.tryParse(raw?.toString() ?? '');
+  }
+
+  Map<String, dynamic> toMap() => {
+        'batchId': batchId,
+        'title': title,
+        'instructions': instructions,
+        'maxMarks': maxMarks,
+        'maximumMarks': maxMarks,
+        'dueDate': dueDate == null ? null : Timestamp.fromDate(dueDate!),
+      };
+
+  bool get isOverdue =>
+      dueDate != null && DateTime.now().isAfter(dueDate!);
+
+  String get formattedDueDate {
+    final d = dueDate;
+    if (d == null) return 'No due date';
+    return '${d.day.toString().padLeft(2, '0')}/'
+        '${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
 }
 
-/// An assignment or quiz. Shape matches `GET /api/v1/assignments`.
+/// Instructor-facing assignment. Shape matches `GET /api/v1/assignments`
+/// on the FastAPI backend — unrelated to the Firestore model above.
 class Assignment {
   final int id;
   final String title;
