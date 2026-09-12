@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../coordinator/coordinator_home.dart';
 import '../../instructor/dashboard/instructor_shell.dart';
+import '../../student/assignments/student_assignments_screen.dart';
 
 /// TEMPORARY entry point — Screen 1 stand-in.
 ///
@@ -82,6 +83,29 @@ class RoleSelectionScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Needs Firebase',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const StudentAssignmentsScreen()),
+                  ),
+                  icon: const Icon(Icons.school_outlined),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Text('Student — Assignments'),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.amber,
+                    foregroundColor: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Partial — assignments only, on in-memory demo data',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
