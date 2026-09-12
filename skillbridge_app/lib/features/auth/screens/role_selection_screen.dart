@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../coordinator/coordinator_home.dart';
+import '../../coordinator/coordinator_shell.dart';
 import '../../instructor/dashboard/instructor_shell.dart';
 import '../../student/student_shell.dart';
 
@@ -69,7 +69,8 @@ class RoleSelectionScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CoordinatorHome()),
+                    MaterialPageRoute(
+                        builder: (_) => const CoordinatorShell()),
                   ),
                   icon: const Icon(Icons.admin_panel_settings),
                   label: const Padding(

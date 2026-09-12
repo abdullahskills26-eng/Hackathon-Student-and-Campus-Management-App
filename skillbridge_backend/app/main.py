@@ -13,9 +13,11 @@ from app.api.v1 import (
     assignments,
     attendance,
     batch,
+    coordinator,
     dashboard,
     instructor,
     notices,
+    seed,
     student,
     students,
 )
@@ -45,6 +47,8 @@ for router in (
     batch.router,
     student.router,
     instructor.router,
+    coordinator.router,
+    seed.router,
 ):
     app.include_router(router, prefix=API_V1_PREFIX)
 

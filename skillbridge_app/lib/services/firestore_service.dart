@@ -12,6 +12,7 @@ import '../models/campus_model.dart';
 import '../models/career_checklist_model.dart';
 import '../models/course_model.dart';
 import '../models/notice_model.dart';
+import '../models/report_metrics_model.dart';
 import '../models/submission_model.dart';
 
 typedef DocMap = Map<String, dynamic>;
@@ -415,6 +416,249 @@ class FirebaseService {
     }
 
     await writeBatch.commit();
+  }
+
+  // =====================================================================
+  // Coordinator
+  // =====================================================================
+
+  /// Campus statistics for the coordinator dashboard.
+  ///
+  /// Pass null for [campusId] to report across every campus.
+  static Future<ReportMetricsModel> fetchCampusMetrics({
+    String? campusId,
+    String? campusName,
+  }) async {
+    bool matchesCampus(Map<String, dynamic> data) {
+      if (campusId == null && campusName == null) return true;
+      final id = (data['campusId'] ?? '').toString();
+      final name =
+          (data['campusName'] ?? data['campus'] ?? '').toString();
+      return (campusId != null && id == campusId) ||
+          (campusName != null && name == campusName);
+    }
+
+    final appsSnap =
+        await db.collection(FirestoreCollections.applications).get();
+    final apps = appsSnap.docs
+        .map((d) => d.data())
+        .where(matchesCampus)
+        .toList();
+
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    final thisMonth = apps.where((a) {
+      final created = (a['createdAt'] as Timestamp?)?.toDate();
+      // Documents written moments ago may not have a server timestamp yet;
+      // counting them in the current month is the sane reading.
+      if (created == null) return true;
+      return created.isAfter(monthStart);
+    }).length;
+
+    final accepted =
+        apps.where((a) => a['status'] == ApplicationStatus.accepted).length;
+
+    final batchesSnap =
+        await db.collection(FirestoreCollections.batches).get();
+    final batches = batchesSnap.docs
+        .map(BatchModel.fromDoc)
+        .where((b) =>
+            campusId == null && campusName == null
+                ? true
+                : b.campusId == campusId || b.campusName == campusName)
+        .toList();
+    final activeBatches = batches.where((b) => b.isActive).length;
+
+    final usersSnap = await db
+        .collection(FirestoreCollections.users)
+        .where('role', isEqualTo: 'student')
+        .get();
+    final students = usersSnap.docs
+        .map((d) => {...d.data(), 'uid': d.id})
+        .where(matchesCampus)
+        .toList();
+
+    // Average attendance across students, preferring the cached percentage.
+    double attendanceTotal = 0;
+    int attendanceCounted = 0;
+    for (final s in students) {
+      final cached = s['attendancePercentage'];
+      if (cached != null) {
+        attendanceTotal += double.tryParse('$cached') ?? 0;
+        attendanceCounted++;
+        continue;
+      }
+      final records = await fetchAttendance(s['uid'].toString());
+      if (records.isEmpty) continue;
+      attendanceTotal += AttendanceSummary.fromRecords(records).percentage;
+      attendanceCounted++;
+    }
+    final averageAttendance =
+        attendanceCounted == 0 ? 0.0 : attendanceTotal / attendanceCounted;
+
+    // Pending = expected submissions that have not been marked.
+    final batchLabels = batches.map((b) => b.label).toSet();
+    final assignmentsSnap =
+        await db.collection(FirestoreCollections.assignments).get();
+    final assignments = assignmentsSnap.docs
+        .map((d) => AssignmentModel.fromMap(d.data(), d.id))
+        .where((a) =>
+            batchLabels.isEmpty || batchLabels.contains(a.batchId))
+        .toList();
+
+    int pending = 0;
+    for (final a in assignments) {
+      final subs = await fetchAssignmentSubmissions(a.assignmentId);
+      final marked = subs.where((s) => s.isMarked).length;
+      final enrolled = batches
+          .firstWhere(
+            (b) => b.label == a.batchId,
+            orElse: () => const BatchModel(batchId: ''),
+          )
+          .enrolledCount;
+      pending += (enrolled == 0 ? subs.length : enrolled) - marked;
+    }
+
+    return ReportMetricsModel(
+      applicationsThisMonth: thisMonth,
+      acceptedStudentsCount: accepted,
+      averageAttendancePercentage: averageAttendance,
+      pendingAssignmentsCount: pending < 0 ? 0 : pending,
+      totalApplications: apps.length,
+      activeBatches: activeBatches,
+      totalStudents: students.length,
+    );
+  }
+
+  /// Every application, newest first.
+  static Stream<List<ApplicationModel>> watchAllApplications() {
+    return db
+        .collection(FirestoreCollections.applications)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs.map(ApplicationModel.fromDoc).toList();
+      list.sort((a, b) {
+        final at = a.createdAt, bt = b.createdAt;
+        if (at == null && bt == null) return 0;
+        if (at == null) return 1;
+        if (bt == null) return -1;
+        return bt.compareTo(at);
+      });
+      return list;
+    });
+  }
+
+  /// Moves an application to a new status and notifies the applicant.
+  static Future<void> updateApplicationStatus({
+    required String applicationId,
+    required String status,
+    String rejectionReason = '',
+    String? applicantUid,
+  }) async {
+    await db
+        .collection(FirestoreCollections.applications)
+        .doc(applicationId)
+        .set({
+      'status': status,
+      'rejectionReason':
+          status == ApplicationStatus.rejected ? rejectionReason : '',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    if (applicantUid != null && applicantUid.isNotEmpty) {
+      await _notifyStudents(
+        [applicantUid],
+        title: 'Application status updated',
+        message: status == ApplicationStatus.rejected &&
+                rejectionReason.isNotEmpty
+            ? 'Your application was rejected: $rejectionReason'
+            : 'Your application is now "$status".',
+      );
+    }
+  }
+
+  /// Creates a batch. The document id is the batch code, so codes stay unique.
+  static Future<void> createBatch(BatchModel batch) async {
+    final ref =
+        db.collection(FirestoreCollections.batches).doc(batch.batchCode);
+    final existing = await ref.get();
+    if (existing.exists) {
+      throw Exception('Batch code ${batch.batchCode} already exists.');
+    }
+    await ref.set({
+      ...batch.toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> updateBatchStatus(
+      String batchDocId, String status) async {
+    await db
+        .collection(FirestoreCollections.batches)
+        .doc(batchDocId)
+        .set({'status': status}, SetOptions(merge: true));
+  }
+
+  static Future<void> assignInstructor({
+    required String batchDocId,
+    required String instructorId,
+    required String instructorName,
+  }) async {
+    await db.collection(FirestoreCollections.batches).doc(batchDocId).set({
+      'instructorId': instructorId,
+      'instructorName': instructorName,
+    }, SetOptions(merge: true));
+
+    if (instructorId.isNotEmpty) {
+      await _notifyStudents(
+        [instructorId],
+        title: 'Batch assigned',
+        message: 'You have been assigned to batch $batchDocId.',
+      );
+    }
+  }
+
+  static Future<List<BatchModel>> fetchAllBatches() async {
+    final snap = await db.collection(FirestoreCollections.batches).get();
+    return snap.docs.map(BatchModel.fromDoc).toList();
+  }
+
+  /// Users with a given role, for the instructor-assignment dropdown.
+  static Future<List<Map<String, dynamic>>> fetchUsersByRole(
+      String role) async {
+    final snap = await db
+        .collection(FirestoreCollections.users)
+        .where('role', isEqualTo: role)
+        .get();
+    return snap.docs
+        .map<Map<String, dynamic>>((d) => {...d.data(), 'uid': d.id})
+        .toList();
+  }
+
+  /// Posts a campus-wide notice and notifies everyone at that campus.
+  static Future<void> postCampusNotice({
+    required NoticeModel notice,
+    required String campusName,
+  }) async {
+    await db.collection(FirestoreCollections.notices).add(notice.toMap());
+
+    final snap = await db.collection(FirestoreCollections.users).get();
+    final recipients = snap.docs
+        .where((d) {
+          if (notice.targetAudience == 'all') return true;
+          final data = d.data();
+          return (data['campus'] ?? data['campusName'] ?? '').toString() ==
+                  campusName ||
+              (data['campusId'] ?? '').toString() == notice.campusId;
+        })
+        .map((d) => d.id)
+        .toList();
+
+    await _notifyStudents(
+      recipients,
+      title: notice.title,
+      message: notice.content,
+    );
   }
 
   /// Notices targeted at one batch, newest first (sorted client-side to

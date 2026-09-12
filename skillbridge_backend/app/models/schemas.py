@@ -90,3 +90,52 @@ class GradeSubmissionRequest(BaseModel):
     submissionId: str = Field(..., min_length=1, max_length=256)
     marks: int = Field(..., ge=0, le=1000)
     feedback: str = Field(default="", max_length=2000)
+
+
+# ----------------------------------------------------------- Coordinator
+
+
+class BatchCreateRequest(BaseModel):
+    """A new course batch."""
+
+    batchCode: str = Field(..., min_length=3, max_length=40)
+    courseId: str = Field(..., min_length=1, max_length=128)
+    courseName: str = Field(..., min_length=1, max_length=120)
+    campusId: str = Field(..., min_length=1, max_length=128)
+    campusName: str = Field(..., min_length=1, max_length=120)
+    instructorId: str = Field(default="", max_length=128)
+    instructorName: str = Field(default="", max_length=120)
+    maxSeats: int = Field(..., gt=0, le=500)
+    startDate: date
+
+    @field_validator("batchCode")
+    @classmethod
+    def code_is_slug_like(cls, v: str) -> str:
+        code = v.strip().upper()
+        if not all(ch.isalnum() or ch in "-_" for ch in code):
+            raise ValueError(
+                "Batch code may contain only letters, digits, - and _"
+            )
+        return code
+
+
+class ApplicationStatusUpdateRequest(BaseModel):
+    """Move an application to a new lifecycle state."""
+
+    status: Literal[
+        "Submitted",
+        "Under Review",
+        "Interview / Test",
+        "Accepted",
+        "Waiting List",
+        "Rejected",
+    ]
+    rejectionReason: str = Field(default="", max_length=1000)
+
+    @model_validator(mode="after")
+    def reason_required_when_rejecting(
+        self,
+    ) -> "ApplicationStatusUpdateRequest":
+        if self.status == "Rejected" and not self.rejectionReason.strip():
+            raise ValueError("A rejection reason is required when rejecting")
+        return self
