@@ -16,9 +16,24 @@
 class SupabaseConfig {
   SupabaseConfig._();
 
-  static const String url = String.fromEnvironment('SUPABASE_URL');
+  /// Project URL. Overridable with --dart-define=SUPABASE_URL=...
+  static const String url = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://rxvfppzsmpjfxwzrjbwq.supabase.co',
+  );
 
-  static const String anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  /// Anon / publishable key. Publishable by design — it identifies the
+  /// project and grants nothing on its own, exactly like the Firebase apiKey
+  /// in firebase_options.dart. Storage access is decided by RLS policies.
+  /// Overridable with --dart-define=SUPABASE_ANON_KEY=...
+  static const String anonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+        'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4dmZwcHpzbXBqZnh3enJqYndxIiwicm9'
+        'sZSI6ImFub24iLCJpYXQiOjE3ODkzMDgxMzIsImV4cCI6MjEwNDg4NDEzMn0.'
+        'nY_O_77TRJAwuxYs_hnunPZMOm96Xu4sw5l-smuXoTY',
+  );
 
   /// Private bucket that holds every uploaded file.
   static const String bucket = 'skillbridge-files';
