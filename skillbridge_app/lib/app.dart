@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/auth/screens/role_selection_screen.dart';
+import 'features/auth/screens/auth_gate.dart';
 
 /// Root widget.
 ///
-/// `home` is currently the temporary role picker. Swap it for the real
-/// `LoginScreen` (Firebase Auth + demo-role buttons) once that screen lands,
-/// and route by the `role` field on users/{uid} from there.
+/// [AuthGate] is the only entry point: it watches Firebase Auth, reads the
+/// signed-in user's role from `users/{uid}`, and builds the one shell that
+/// role is entitled to.
 class SkillBridgeApp extends StatelessWidget {
   final bool firebaseReady;
   final String? firebaseError;
@@ -24,7 +24,9 @@ class SkillBridgeApp extends StatelessWidget {
       title: 'SkillBridge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: RoleSelectionScreen(
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
+      home: AuthGate(
         firebaseReady: firebaseReady,
         firebaseError: firebaseError,
       ),
