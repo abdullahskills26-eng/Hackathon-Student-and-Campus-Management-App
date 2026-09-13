@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/supabase_config.dart';
 import '../../../core/utils/state_renderers.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_card.dart';
@@ -10,6 +11,7 @@ import '../../../models/assignment_model.dart';
 import '../../../models/batch_model.dart';
 import '../../../models/submission_model.dart';
 import '../../../services/firestore_service.dart';
+import '../../../services/supabase_storage_service.dart';
 
 /// Screen 11 (cont.) — grade submissions and leave feedback.
 class GradeSubmissionsScreen extends StatefulWidget {
@@ -353,6 +355,100 @@ class _SubmissionRow extends StatelessWidget {
   }
 }
 
+/// Shows a submitted attachment and mints a time-limited link on demand.
+///
+/// The Supabase bucket is private, so Firestore holds only the object path.
+/// A signed URL is generated when the instructor asks for it and expires
+/// after [SupabaseConfig.signedUrlTtl].
+class _AttachmentLink extends StatefulWidget {
+  final String fileName;
+  final String storagePath;
+
+  const _AttachmentLink({required this.fileName, required this.storagePath});
+
+  @override
+  State<_AttachmentLink> createState() => _AttachmentLinkState();
+}
+
+class _AttachmentLinkState extends State<_AttachmentLink> {
+  bool _loading = false;
+  String? _url;
+  String? _error;
+
+  Future<void> _generate() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final url = await SupabaseStorageService.signedUrl(widget.storagePath);
+      if (!mounted) return;
+      setState(() {
+        _url = url;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.attach_file, size: 16, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                widget.fileName.isEmpty
+                    ? widget.storagePath.split('/').last
+                    : widget.fileName,
+                style: const TextStyle(
+                    fontSize: 12.5, fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _loading ? null : _generate,
+              icon: _loading
+                  ? const SizedBox(
+                      width: 13,
+                      height: 13,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.link, size: 15),
+              label: Text(_url == null ? 'Get link' : 'Refresh link',
+                  style: const TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        if (_url != null) ...[
+          const SizedBox(height: 4),
+          SelectableText(
+            _url!,
+            style: const TextStyle(fontSize: 11, color: AppColors.primary),
+          ),
+          Text(
+            'Copy into a browser tab. Expires in '
+            '${SupabaseConfig.signedUrlTtl.inMinutes} minutes.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 4),
+          Text(_error!,
+              style: const TextStyle(fontSize: 11, color: AppColors.error)),
+        ],
+      ],
+    );
+  }
+}
+
 /// Marks + feedback entry for one submission.
 class _GradingDialog extends StatefulWidget {
   final SubmissionModel submission;
@@ -487,27 +583,9 @@ class _GradingDialogState extends State<_GradingDialog> {
                           style: Theme.of(context).textTheme.bodySmall),
                     if (s.hasFile) ...[
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.attach_file,
-                              size: 16, color: AppColors.primary),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: SelectableText(
-                              s.fileName.isEmpty ? s.fileUrl : s.fileName,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.primary,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        s.fileUrl,
-                        style: Theme.of(context).textTheme.bodySmall,
+                      _AttachmentLink(
+                        fileName: s.fileName,
+                        storagePath: s.fileUrl,
                       ),
                     ],
                   ],

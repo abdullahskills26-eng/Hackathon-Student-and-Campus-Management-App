@@ -10,7 +10,7 @@ import '../../../core/widgets/custom_textfield.dart';
 import '../../../models/assignment_model.dart';
 import '../../../models/submission_model.dart';
 import '../../../services/firestore_service.dart';
-import '../../../services/storage_service.dart';
+import '../../../services/supabase_storage_service.dart';
 
 /// Screen 8b — submit work for one assignment.
 ///
@@ -38,6 +38,10 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> {
   int? _fileSize;
 
   bool _submitting = false;
+
+  /// True only while bytes are going to Supabase, so the button can say
+  /// "Uploading file…" rather than a generic spinner.
+  bool _uploading = false;
   String? _error;
 
   @override
@@ -101,15 +105,23 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> {
 
     try {
       final uid = FirebaseService.currentUid;
-      String fileUrl = widget.existing?.fileUrl ?? '';
+
+      // `fileUrl` holds the Supabase storage PATH, not a link. The bucket is
+      // private, so a viewable URL is signed on demand at read time.
+      String storagePath = widget.existing?.fileUrl ?? '';
+      String storedName = widget.existing?.fileName ?? '';
 
       if (hasFile) {
-        fileUrl = await StorageService.uploadSubmission(
-          assignmentId: widget.assignment.assignmentId,
+        setState(() => _uploading = true);
+        final stored = await SupabaseStorageService.uploadAssignmentFile(
           uid: uid,
+          assignmentId: widget.assignment.assignmentId,
           bytes: _fileBytes!,
           fileName: _fileName!,
         );
+        storagePath = stored.path;
+        storedName = stored.fileName;
+        if (mounted) setState(() => _uploading = false);
       }
 
       // Late once the due date has passed.
@@ -117,14 +129,15 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> {
           ? SubmissionStatus.late
           : SubmissionStatus.submitted;
 
+      // Only the path and metadata go to Firestore — never the file bytes.
       await FirebaseService.saveSubmission(
         SubmissionModel(
           submissionId: '',
           assignmentId: widget.assignment.assignmentId,
           uid: uid,
           textAnswer: text,
-          fileUrl: fileUrl,
-          fileName: _fileName ?? widget.existing?.fileName ?? '',
+          fileUrl: storagePath,
+          fileName: storedName,
           submittedAt: DateTime.now(),
           status: status,
         ),
@@ -143,7 +156,12 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> {
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _uploading = false;
+        });
+      }
     }
   }
 
@@ -307,12 +325,22 @@ class _SubmitAssignmentScreenState extends State<SubmitAssignmentScreen> {
 
                 const SizedBox(height: 24),
                 CustomButton(
-                  label: 'Submit',
+                  label: _uploading ? 'Uploading file…' : 'Submit',
                   icon: Icons.send_rounded,
                   expand: true,
                   isLoading: _submitting,
                   onPressed: _submit,
                 ),
+                if (_uploading) ...[
+                  const SizedBox(height: 12),
+                  const LinearProgressIndicator(minHeight: 3),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sending ${_fileName ?? 'file'} to secure storage…',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
                 const SizedBox(height: 12),
               ],
             ),
