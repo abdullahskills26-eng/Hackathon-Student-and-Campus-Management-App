@@ -17,7 +17,13 @@ CAMPUS_NAME = "Lahore Campus"
 CAMPUS_ID = "lahore-campus"
 COURSE_NAME = "Flutter Development"
 COURSE_ID = "flutter-development"
-INSTRUCTOR_ID = "demo_instructor_hamza"
+# Real Firebase Auth UIDs for the three demo accounts on skillbridge-32f45.
+# Seeding against these rather than synthetic ids is what makes signing in as
+# a demo account land on a populated dashboard.
+STUDENT_UID = "phxpBxchb1TDv3ZxbgPEsRGE7CU2"
+INSTRUCTOR_ID = "YvKxpyVjqfPicIsV4pp0E5n1CIs2"
+COORDINATOR_UID = "xRaLAojCVmgHbcvr9VY2wsrR3Kg2"
+
 INSTRUCTOR_NAME = "Sir Hamza"
 STUDENT_COUNT = 12
 
@@ -71,8 +77,13 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _student_uid(index: int) -> str:
+    """Student 0 is the real demo account; the rest are synthetic."""
+    return STUDENT_UID if index == 0 else f"demo_flutter_student_{index + 1}"
+
+
 def _student_uids() -> List[str]:
-    return [f"demo_flutter_student_{i + 1}" for i in range(STUDENT_COUNT)]
+    return [_student_uid(i) for i in range(STUDENT_COUNT)]
 
 
 def seed(on_progress: Optional[ProgressFn] = None) -> Dict[str, Any]:
@@ -135,7 +146,7 @@ def seed(on_progress: Optional[ProgressFn] = None) -> Dict[str, Any]:
         merge=True,
     )
     batch.set(
-        db.collection("users").document("demo_coordinator_lahore"),
+        db.collection("users").document(COORDINATOR_UID),
         {
             "name": "Campus Coordinator",
             "email": "admin@skillbridge.org",
@@ -154,7 +165,7 @@ def seed(on_progress: Optional[ProgressFn] = None) -> Dict[str, Any]:
     batch = db.batch()
     for i in range(STUDENT_COUNT):
         batch.set(
-            db.collection("users").document(f"demo_flutter_student_{i + 1}"),
+            db.collection("users").document(_student_uid(i)),
             {
                 "name": STUDENT_NAMES[i],
                 "email": f"student{i + 1}@skillbridge.org",
@@ -200,7 +211,12 @@ def seed(on_progress: Optional[ProgressFn] = None) -> Dict[str, Any]:
         batch.set(
             db.collection("applications").document(f"demo_application_{i + 1}"),
             {
-                "uid": f"demo_flutter_student_{i + 1}",
+                # The Accepted application belongs to the real demo student,
+                # so their applications screen matches their enrolment.
+                "uid": (
+                    STUDENT_UID if status == "Accepted"
+                    else f"demo_applicant_{i + 1}"
+                ),
                 "fullName": STUDENT_NAMES[i],
                 "cnic": f"35202-000000{i + 1}-0",
                 "education": "BS Computer Science",
@@ -247,7 +263,7 @@ def seed(on_progress: Optional[ProgressFn] = None) -> Dict[str, Any]:
     batch.commit()
 
     step("submissions", 0.85)
-    uid = "demo_flutter_student_1"
+    uid = STUDENT_UID
     batch = db.batch()
     # Assignments 1 and 2 stay Pending.
     for n in (1, 2):
@@ -376,7 +392,7 @@ def _seed_attendance(db) -> None:
         status_map: Dict[str, str] = {}
 
         for i in range(STUDENT_COUNT):
-            uid = f"demo_flutter_student_{i + 1}"
+            uid = _student_uid(i)
             # Deterministic spread so a couple of students fall below the 60%
             # at-risk line and the instructor's monitor has something to show.
             if i >= 9:

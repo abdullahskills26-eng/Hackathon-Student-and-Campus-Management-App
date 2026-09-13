@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// SkillBridge Firebase Storage rules.
+//
+// Two paths are used by the app:
+//   profiles/{uid}.jpg                     profile pictures
+//   submissions/{assignmentId}/{uid}       assignment uploads
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // 10 MB cap on any upload.
+    function withinSizeLimit() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Anyone signed in can view a profile picture; only you can replace yours.
+    match /profiles/{fileName} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && withinSizeLimit()
+        && fileName.matches(request.auth.uid + '\\..*');
+    }
+
+    // Students upload their own submission; instructors need to read them,
+    // so reads are open to any signed-in user.
+    match /submissions/{assignmentId}/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && withinSizeLimit()
+        && request.auth.uid == uid;
+    }
+
+    // Anything else is denied.
+  }
+}

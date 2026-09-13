@@ -57,12 +57,21 @@ class _BrandPanel extends StatelessWidget {
   const _BrandPanel();
 
   static const _features = [
-    (Icons.menu_book_rounded, 'Free IT courses',
-        'Flutter, Web, Cybersecurity, Design and more.'),
-    (Icons.fact_check_rounded, 'Attendance and assignments',
-        'Track every class and every submission in one place.'),
-    (Icons.workspace_premium_rounded, 'Career readiness',
-        'Know when you are genuinely job-ready.'),
+    (
+      Icons.menu_book_rounded,
+      'Free IT courses',
+      'Flutter, Web, Cybersecurity, Design and more.',
+    ),
+    (
+      Icons.fact_check_rounded,
+      'Attendance and assignments',
+      'Track every class and every submission in one place.',
+    ),
+    (
+      Icons.workspace_premium_rounded,
+      'Career readiness',
+      'Know when you are genuinely job-ready.',
+    ),
   ];
 
   @override
@@ -72,11 +81,7 @@ class _BrandPanel extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            Color(0xFF1B3FA8),
-            AppColors.secondary,
-          ],
+          colors: [AppColors.primary, Color(0xFF1B3FA8), AppColors.secondary],
           stops: [0.0, 0.55, 1.0],
         ),
       ),
@@ -94,106 +99,125 @@ class _BrandPanel extends StatelessWidget {
             child: _Bloom(size: 280, opacity: 0.08),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 52, vertical: 44),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
+            // Scrolls rather than overflowing on short windows, but still
+            // centres vertically whenever there is room: the ConstrainedBox
+            // floor makes the Column at least as tall as the viewport.
+            child: LayoutBuilder(
+              builder: (context, panel) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 52,
+                  vertical: 44,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: panel.maxHeight - 88, // minus vertical padding
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: const Icon(Icons.school_rounded,
-                            color: Colors.white, size: 25),
-                      ),
-                      const SizedBox(width: 14),
-                      const Text(
-                        'SkillBridge',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  const Text(
-                    'Build the skills.\nBridge the gap.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      height: 1.15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Campus management for free IT courses across Pakistan — '
-                    'apply, attend, submit, and get job-ready.',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.86),
-                      fontSize: 15,
-                      height: 1.55,
-                    ),
-                  ),
-                  const SizedBox(height: 44),
-                  ..._features.map(
-                    (f) => Padding(
-                      padding: const EdgeInsets.only(bottom: 22),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
+                            width: 46,
+                            height: 46,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(11),
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(13),
                             ),
-                            child:
-                                Icon(f.$1, color: Colors.white, size: 19),
+                            child: const Icon(
+                              Icons.school_rounded,
+                              color: Colors.white,
+                              size: 25,
+                            ),
                           ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  f.$2,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  f.$3,
-                                  style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.78),
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(width: 14),
+                          const Text(
+                            'SkillBridge',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 40),
+                      const Text(
+                        'Build the skills.\nBridge the gap.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 38,
+                          height: 1.15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Campus management for free IT courses across Pakistan — '
+                        'apply, attend, submit, and get job-ready.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.86),
+                          fontSize: 15,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 44),
+                      ..._features.map(
+                        (f) => Padding(
+                          padding: const EdgeInsets.only(bottom: 22),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: Icon(
+                                  f.$1,
+                                  color: Colors.white,
+                                  size: 19,
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      f.$2,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      f.$3,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.78,
+                                        ),
+                                        fontSize: 13,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -258,8 +282,7 @@ class _FormPanelState extends State<_FormPanel>
     _slide = Tween(
       begin: const Offset(0, 0.045),
       end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
   }
 
@@ -292,15 +315,15 @@ class _FormPanelState extends State<_FormPanel>
                           height: 42,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [
-                                AppColors.primary,
-                                AppColors.secondary
-                              ],
+                              colors: [AppColors.primary, AppColors.secondary],
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.school_rounded,
-                              color: Colors.white, size: 22),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         const Text(
@@ -318,18 +341,19 @@ class _FormPanelState extends State<_FormPanel>
                   ],
                   Text(
                     widget.title,
-                    textAlign:
-                        widget.compactHeader ? TextAlign.center : TextAlign.start,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(fontSize: 28),
+                    textAlign: widget.compactHeader
+                        ? TextAlign.center
+                        : TextAlign.start,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineMedium?.copyWith(fontSize: 28),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     widget.subtitle,
-                    textAlign:
-                        widget.compactHeader ? TextAlign.center : TextAlign.start,
+                    textAlign: widget.compactHeader
+                        ? TextAlign.center
+                        : TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 28),

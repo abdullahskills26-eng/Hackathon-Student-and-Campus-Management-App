@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// SkillBridge Firestore security rules.
+//
+// DEMO-GRADE, NOT PRODUCTION. Any signed-in user can read every collection
+// and write most of them. That is deliberate for a hackathon demo where all
+// three roles need to exercise the whole dataset, but it means a student
+// could technically write an assignment or grade their own submission.
+//
+// Before this goes anywhere real, tighten the per-collection write rules to
+// check role() the way `assignments` and `batches` already do below.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Reads the role off users/{uid}. Returns '' when the profile document
+    // does not exist yet, so rules fail closed rather than erroring.
+    function role() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? profile().role
+        : '';
+    }
+
+    function isCoordinator() { return role() == 'coordinator'; }
+    function isInstructor()  { return role() == 'instructor'; }
+    function isStaff()       { return isCoordinator() || isInstructor(); }
+
+    // ---------------------------------------------------------------- users
+    match /users/{uid} {
+      allow read: if signedIn();
+      // You may create your own profile at sign-up, and edit only your own.
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || isStaff());
+      allow delete: if isCoordinator();
+    }
+
+    // ------------------------------------------------- catalog (read-only)
+    match /courses/{id} {
+      allow read: if signedIn();
+      allow write: if isCoordinator();
+    }
+
+    match /campuses/{id} {
+      allow read: if signedIn();
+      allow write: if isCoordinator();
+    }
+
+    // -------------------------------------------------------------- batches
+    match /batches/{id} {
+      allow read: if signedIn();
+      allow write: if isCoordinator();
+    }
+
+    // --------------------------------------------------------- applications
+    match /applications/{id} {
+      allow read: if signedIn();
+      // Students submit their own; coordinators change status.
+      allow create: if signedIn();
+      allow update, delete: if isCoordinator();
+    }
+
+    // ----------------------------------------------------------- attendance
+    match /attendance/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // ---------------------------------------------------------- assignments
+    match /assignments/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // ---------------------------------------------------------- submissions
+    match /submissions/{id} {
+      allow read: if signedIn();
+      // Students write their own submission; instructors add marks.
+      allow create, update: if signedIn();
+      allow delete: if isStaff();
+    }
+
+    // -------------------------------------------------------------- notices
+    match /notices/{id} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
+    // -------------------------------------------------------- notifications
+    match /notifications/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn();
+    }
+
+    // Anything not listed above is denied.
+  }
+}

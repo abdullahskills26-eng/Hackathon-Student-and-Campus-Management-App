@@ -18,6 +18,15 @@ class SeedService {
   static const String demoCourse = 'Flutter Development';
   static const int demoStudentCount = 12;
 
+  /// Real Firebase Auth UIDs for the three demo accounts.
+  ///
+  /// Seeding against these rather than synthetic ids is what makes the demo
+  /// coherent: signing in as student@skillbridge.org lands on a dashboard
+  /// with a batch, assignments and attendance, not an empty one.
+  static String get demoStudentUid => DemoCredentials.student.uid;
+  static String get demoInstructorUid => DemoCredentials.instructor.uid;
+  static String get demoCoordinatorUid => DemoCredentials.coordinator.uid;
+
   // ---- 6 courses ----
   static const List<List<String>> _courses = [
     ['flutter-development', 'Flutter Development', 'Beginner', '6 Months',
@@ -149,7 +158,7 @@ class SeedService {
     final users = db.collection(FirestoreCollections.users);
 
     batch.set(
-      users.doc('demo_instructor_hamza'),
+      users.doc(demoInstructorUid),
       {
         'name': DemoCredentials.instructor.name,
         'email': DemoCredentials.instructor.email,
@@ -164,7 +173,7 @@ class SeedService {
     );
 
     batch.set(
-      users.doc('demo_coordinator_lahore'),
+      users.doc(demoCoordinatorUid),
       {
         'name': DemoCredentials.coordinator.name,
         'email': DemoCredentials.coordinator.email,
@@ -181,14 +190,13 @@ class SeedService {
     await batch.commit();
   }
 
-  /// 12 students, all enrolled in the Flutter batch.
+  /// 12 students, all enrolled in the Flutter batch. Student 1 is the real
+  /// demo account so signing in as it shows a populated dashboard.
   static Future<void> _seedStudents() async {
     final batch = db.batch();
     for (var i = 0; i < demoStudentCount; i++) {
       batch.set(
-        db
-            .collection(FirestoreCollections.users)
-            .doc('demo_flutter_student_${i + 1}'),
+        db.collection(FirestoreCollections.users).doc(_studentUid(i)),
         {
           'name': _studentNames[i],
           'email': 'student${i + 1}@skillbridge.org',
@@ -206,8 +214,12 @@ class SeedService {
     await batch.commit();
   }
 
-  static List<String> get _studentUids => List.generate(
-      demoStudentCount, (i) => 'demo_flutter_student_${i + 1}');
+  /// Student 0 is the real demo account; the rest are synthetic.
+  static String _studentUid(int index) =>
+      index == 0 ? demoStudentUid : 'demo_flutter_student_${index + 1}';
+
+  static List<String> get _studentUids =>
+      List.generate(demoStudentCount, _studentUid);
 
   static Future<void> _seedBatch() async {
     await db
@@ -221,7 +233,7 @@ class SeedService {
       'campusId': 'lahore-campus',
       'campusName': demoCampus,
       'campus': demoCampus,
-      'instructorId': 'demo_instructor_hamza',
+      'instructorId': demoInstructorUid,
       'instructorName': DemoCredentials.instructor.name,
       'maxSeats': 30,
       'seats': 30,
@@ -244,8 +256,14 @@ class SeedService {
             .collection(FirestoreCollections.applications)
             .doc('demo_application_${i + 1}'),
         {
-          'uid': 'demo_flutter_student_${i + 1}',
-          'fullName': _studentNames[i],
+          // The Accepted application belongs to the real demo student, so
+          // their "My Applications" screen matches their enrolment.
+          'uid': status == 'Accepted'
+              ? demoStudentUid
+              : 'demo_applicant_${i + 1}',
+          'fullName': status == 'Accepted'
+              ? DemoCredentials.student.name
+              : _studentNames[i],
           'cnic': '35202-000000${i + 1}-0',
           'education': 'BS Computer Science',
           'city': 'Lahore',
@@ -299,7 +317,7 @@ class SeedService {
   /// Exact status distribution for student 1:
   /// A1 Pending, A2 Pending, A3 Submitted, A4 Marked (18/20).
   static Future<void> _seedSubmissions() async {
-    const uid = 'demo_flutter_student_1';
+    final uid = demoStudentUid;
     final batch = db.batch();
     final submissions = db.collection(FirestoreCollections.submissions);
 
@@ -380,7 +398,7 @@ class SeedService {
 
       final statusMap = <String, String>{};
       for (var i = 0; i < demoStudentCount; i++) {
-        final uid = 'demo_flutter_student_${i + 1}';
+        final uid = _studentUid(i);
         // Deterministic spread so some students land below the 60% at-risk
         // line and the instructor's monitor has something to show.
         final String status;
