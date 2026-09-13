@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/widgets/account_menu.dart';
 import '../shared/notifications/notifications_screen.dart';
 import '../shared/profile/profile_screen.dart';
 import 'applications/application_inbox_screen.dart';
@@ -67,6 +68,20 @@ class _CoordinatorShellState extends State<CoordinatorShell> {
                   selectedIndex: _index,
                   onDestinationSelected: (i) => setState(() => _index = i),
                   labelType: NavigationRailLabelType.all,
+                  // Sign-out is always one tap away, on every dashboard.
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: AccountMenu(
+                          roleLabel: 'Coordinator',
+                          showLabel: true,
+                          onOpenProfile: () => setState(() => _index = 5),
+                        ),
+                      ),
+                    ),
+                  ),
                   destinations: _destinations
                       .map((d) => NavigationRailDestination(
                             icon: Icon(d.$1),

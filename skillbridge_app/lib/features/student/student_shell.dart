@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/widgets/account_menu.dart';
+import '../shared/profile/profile_screen.dart';
 import 'assignments/assignments_screen.dart';
 import 'courses/application_status_screen.dart';
 import 'courses/course_list_screen.dart';
@@ -27,7 +29,10 @@ class _StudentShellState extends State<StudentShell> {
     (Icons.calendar_month_outlined, Icons.calendar_month, 'Timetable'),
     (Icons.assignment_outlined, Icons.assignment, 'Assignments'),
     (Icons.trending_up_outlined, Icons.trending_up, 'Progress'),
+    (Icons.person_outline, Icons.person, 'Profile'),
   ];
+
+  static const int _profileIndex = 6;
 
   Widget _screenAt(int i) {
     switch (i) {
@@ -41,10 +46,14 @@ class _StudentShellState extends State<StudentShell> {
         return const TimetableAttendanceScreen();
       case 4:
         return const AssignmentsScreen();
-      default:
+      case 5:
         return const ProgressChecklistScreen();
+      default:
+        return const ProfileScreen();
     }
   }
+
+  void _openProfile() => setState(() => _index = _profileIndex);
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +79,20 @@ class _StudentShellState extends State<StudentShell> {
                   selectedIndex: _index,
                   onDestinationSelected: (i) => setState(() => _index = i),
                   labelType: NavigationRailLabelType.all,
+                  // Sign-out is always one tap away, on every dashboard.
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: AccountMenu(
+                          roleLabel: 'Student',
+                          showLabel: true,
+                          onOpenProfile: _openProfile,
+                        ),
+                      ),
+                    ),
+                  ),
                   destinations: _destinations
                       .map((d) => NavigationRailDestination(
                             icon: Icon(d.$1),
