@@ -57,7 +57,7 @@ skillbridge/
 
 | Role | Email | Description |
 | --- | --- | --- |
-| Student | student@skillbridge.org | Ayesha — Flutter student |
+| Student | student@skillbridge.org | Abdullah — Flutter student |
 | Instructor | instructor@skillbridge.org | Sir Hamza — Flutter instructor |
 | Coordinator | admin@skillbridge.org | Campus Coordinator — Lahore |
 
